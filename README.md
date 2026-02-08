@@ -19,11 +19,11 @@ Enter a broad topic (e.g. "Machine Learning", "Climate Change"), and AI generate
 
 ### 🌿 生长探索 | Grow & Explore
 选中任意节点，点击"成长"，可以：
-- **AI 拆解**：由 Claude 将该话题进一步细分为子主题（枝干生长）
+ - **AI 拆解**：由 LLM 将该话题进一步细分为子主题（枝干生长）
 - **资料搜索**：通过 Tavily 搜索具体资料，结果以叶子形式展示，用户自主筛选保留
 
 Select any node and click "Grow" to:
-- **AI Breakdown**: Claude splits the topic into finer subtopics (branches grow)
+ - **AI Breakdown**: LLM splits the topic into finer subtopics (branches grow)
 - **Resource Search**: Tavily fetches specific resources displayed as leaves for manual curation
 
 ### ✂️ 修剪聚焦 | Prune & Focus
@@ -51,7 +51,7 @@ Export your curated knowledge paths as structured notes — harvest your learnin
 └──────────────┬──────────────┬───────────────┘
                │              │
        ┌───────▼──────┐ ┌────▼────────────┐
-       │  Claude API  │ │  Tavily API     │
+       │   LLM API    │ │  Tavily API     │
        │  (via Proxy) │ │  (via Proxy)    │
        │              │ │                 │
        │ · 主题拆解    │ │ · 资料搜索      │
@@ -65,7 +65,7 @@ Export your curated knowledge paths as structured notes — harvest your learnin
 | 前端框架 Frontend | React + Vite | 界面渲染 UI Rendering |
 | 树可视化 Visualization | React Flow | 交互式树形画布 Interactive tree canvas |
 | 状态管理 State | Zustand | 树结构 & 选中节点 Tree structure & selection |
-| AI 拆解 AI Breakdown | Claude API (w/ Web Search) | 主题拆解与子话题生成 Topic decomposition |
+| AI 拆解 AI Breakdown | LLM API (w/ Web Search) | 主题拆解与子话题生成 Topic decomposition |
 | 资料搜索 Search | Tavily API | 具体资料检索与筛选 Resource retrieval |
 | API 代理 Proxy | Express.js | 保护 API Key Secure API keys |
 
@@ -99,7 +99,7 @@ npm install
 # 配置环境变量 Set up env
 cp .env.example .env
 # 填入你的 API Key / Add your API keys:
-#   CLAUDE_API_KEY=sk-ant-...
+#   MODELSCOPE_API_KEY=ms-...
 #   TAVILY_API_KEY=tvly-...
 
 # 启动开发服务器 Start dev server
@@ -119,7 +119,7 @@ knotree/
 │   ├── store/
 │   │   └── treeStore.js        # Zustand 状态管理 State store
 │   ├── services/
-│   │   ├── claude.js           # Claude API 调用 API client
+│   │   ├── llm.js              # LLM API 调用 API client
 │   │   └── tavily.js           # Tavily API 调用 API client
 │   ├── App.jsx
 │   └── main.jsx
@@ -134,8 +134,8 @@ knotree/
 用户输入主题 User enters topic
         │
         ▼
-  Claude 拆解为 3-5 个子话题
-  Claude breaks down into 3-5 subtopics
+  LLM 拆解为 3-5 个子话题
+  LLM breaks down into 3-5 subtopics
         │
         ▼
   渲染为树的第一层枝干
@@ -154,7 +154,7 @@ knotree/
  │     │   Marked pruned, visually faded
  ▼     ▼
 AI拆解  资料搜索
-Claude  Tavily
+LLM     Tavily
  │       │
  ▼       ▼
 新枝干   叶子节点（用户筛选保留/丢弃）
