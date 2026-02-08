@@ -1,5 +1,6 @@
 import React from "react";
 import { THEME } from "../theme";
+import HarvestNote from "../HarvestNote";
 
 // ─── Node Detail Panel ───
 export function NodeDetail({
@@ -376,24 +377,9 @@ export function ExportModal({ markdown, onClose }) {
         >
           🍎 知识收获 | Knowledge Harvest
         </div>
-        <pre
-          style={{
-            flex: 1,
-            overflow: "auto",
-            padding: 16,
-            borderRadius: 10,
-            background: "rgba(255,255,255,0.7)",
-            border: `1px solid ${THEME.inputBorder}`,
-            color: THEME.textDim,
-            fontSize: 12,
-            lineHeight: 1.7,
-            fontFamily: "'Fira Code', 'Consolas', monospace",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-        >
-          {markdown}
-        </pre>
+        <div className="harvest-scroll">
+          <HarvestNote markdown={markdown} />
+        </div>
         <div
           style={{
             display: "flex",
