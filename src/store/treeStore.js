@@ -180,11 +180,14 @@ export function treeReducer(state, action) {
 
 // ─── Tree Layout Algorithm ───
 
-export function computeLayout(treeNodes, rootId, width) {
+export function computeLayout(treeNodes, rootId, width, height) {
   if (!rootId || !treeNodes[rootId]) return {};
   const positions = {};
-  const LEVEL_H = 105;
-  const ROOT_Y = 55;
+  const LEVEL_H = 150;
+  const ROOT_PAD = 70;
+  const SIDE_PAD = 90;
+  const MIN_GAP = 140;
+  const rootY = Math.max(ROOT_PAD + LEVEL_H, height - ROOT_PAD);
 
   function countVisible(id) {
     const node = treeNodes[id];
@@ -200,7 +203,7 @@ export function computeLayout(treeNodes, rootId, width) {
     const node = treeNodes[id];
     if (!node) return;
     const x = (left + right) / 2;
-    const y = ROOT_Y + depth * LEVEL_H;
+    const y = rootY - depth * LEVEL_H;
     positions[id] = { x, y };
     const vis = node.children.filter(
       (cid) => treeNodes[cid]?.status !== "pruned"
@@ -216,7 +219,26 @@ export function computeLayout(treeNodes, rootId, width) {
     });
   }
 
-  layout(rootId, 60, width - 60, 0);
+  layout(rootId, SIDE_PAD, width - SIDE_PAD, 0);
+
+  const depthMap = {};
+  Object.values(treeNodes).forEach((node) => {
+    if (!positions[node.id] || node.status === "pruned") return;
+    if (!depthMap[node.depth]) depthMap[node.depth] = [];
+    depthMap[node.depth].push(node.id);
+  });
+
+  Object.values(depthMap).forEach((ids) => {
+    ids.sort((a, b) => positions[a].x - positions[b].x);
+    for (let i = 1; i < ids.length; i += 1) {
+      const prev = positions[ids[i - 1]];
+      const curr = positions[ids[i]];
+      if (curr.x - prev.x < MIN_GAP) {
+        curr.x = prev.x + MIN_GAP;
+      }
+    }
+  });
+
   return positions;
 }
 

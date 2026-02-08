@@ -64,8 +64,8 @@ function WelcomeScreen({ topic, setTopic, onSubmit, isLoading }) {
             style={{
               padding: "6px 14px",
               borderRadius: 20,
-              background: "rgba(26,46,35,0.6)",
-              border: `1px solid ${THEME.nodeBorder}`,
+              background: "rgba(255,255,255,0.7)",
+              border: `1px solid ${THEME.inputBorder}`,
               color: THEME.textDim,
               cursor: "pointer",
               fontSize: 12,
@@ -76,7 +76,7 @@ function WelcomeScreen({ topic, setTopic, onSubmit, isLoading }) {
               e.target.style.color = THEME.primary;
             }}
             onMouseLeave={(e) => {
-              e.target.style.borderColor = THEME.nodeBorder;
+              e.target.style.borderColor = THEME.inputBorder;
               e.target.style.color = THEME.textDim;
             }}
           >
@@ -102,16 +102,24 @@ export default function App() {
   const [searchMode, setSearchMode] = useState("tavily");
 
   // Compute positions
-  const viewW = useMemo(() => {
-    const count = Object.values(state.treeNodes).filter(
+  const { viewW, viewH } = useMemo(() => {
+    const visible = Object.values(state.treeNodes).filter(
       (n) => n.status !== "pruned"
-    ).length;
-    return Math.max(900, count * 75);
+    );
+    const count = visible.length;
+    const maxDepth = visible.reduce((m, n) => Math.max(m, n.depth || 0), 0);
+    const levelH = 150;
+    const rootPad = 70;
+    const topPad = 80;
+    return {
+      viewW: Math.max(1100, count * 110),
+      viewH: Math.max(720, maxDepth * levelH + rootPad + topPad),
+    };
   }, [state.treeNodes]);
 
   const positions = useMemo(
-    () => computeLayout(state.treeNodes, state.rootId, viewW),
-    [state.treeNodes, state.rootId, viewW]
+    () => computeLayout(state.treeNodes, state.rootId, viewW, viewH),
+    [state.treeNodes, state.rootId, viewW, viewH]
   );
 
   // ─── Actions ───
@@ -125,7 +133,9 @@ export default function App() {
         payload: { topic: topic.trim(), children: subtopics },
       });
     } else {
-      alert("生成失败，请检查 API 代理是否已启动 (npm run server) 以及 MODELSCOPE_API_KEY 是否正确");
+      alert(
+        "生成失败，请确认后端服务可访问，并检查 MODELSCOPE_API_KEY 是否正确"
+      );
     }
     setIsInitializing(false);
   }, [topic, isInitializing]);
@@ -200,15 +210,14 @@ export default function App() {
         width: "100%",
         height: "100vh",
         background: THEME.bg,
-        fontFamily: "'Noto Sans SC', 'Segoe UI', system-ui, sans-serif",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
         color: THEME.textMain,
+        position: "relative",
       }}
     >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         ::-webkit-scrollbar { width: 4px; }
@@ -219,15 +228,19 @@ export default function App() {
       {/* ─── Header ─── */}
       <div
         style={{
-          padding: "10px 20px",
+          padding: "14px 22px",
           display: "flex",
           alignItems: "center",
           gap: 12,
-          borderBottom: `1px solid ${THEME.nodeBorder}`,
-          background: "rgba(13,20,16,0.85)",
-          backdropFilter: "blur(12px)",
+          border: `1px solid ${THEME.glassBorder}`,
+          background: THEME.glass,
+          backdropFilter: "blur(14px)",
           zIndex: 10,
           flexShrink: 0,
+          margin: "16px auto 8px",
+          borderRadius: 18,
+          boxShadow: "0 12px 30px rgba(41, 50, 30, 0.12)",
+          width: "min(980px, 94%)",
         }}
       >
         <div style={{ fontSize: 22 }}>🌳</div>
@@ -267,6 +280,7 @@ export default function App() {
                 color: THEME.textMain,
                 fontSize: 13,
                 outline: "none",
+                boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.2)",
               }}
               onFocus={(e) => (e.target.style.borderColor = THEME.primary)}
               onBlur={(e) =>
@@ -288,6 +302,7 @@ export default function App() {
                 fontSize: 13,
                 fontWeight: 500,
                 whiteSpace: "nowrap",
+                boxShadow: "0 6px 14px rgba(74,93,35,0.18)",
               }}
             >
               {isInitializing ? "🌱 生成中..." : "🌱 种下种子"}
@@ -330,12 +345,12 @@ export default function App() {
                   border: `1px solid ${
                     searchMode === "tavily"
                       ? THEME.primary
-                      : THEME.nodeBorder
+                      : THEME.inputBorder
                   }`,
                   background:
                     searchMode === "tavily"
-                      ? "rgba(74,222,128,0.15)"
-                      : "transparent",
+                      ? "rgba(143,188,143,0.2)"
+                      : "rgba(255,255,255,0.6)",
                   color:
                     searchMode === "tavily" ? THEME.primary : THEME.textDim,
                   cursor: "pointer",
@@ -352,12 +367,12 @@ export default function App() {
                   border: `1px solid ${
                     searchMode === "llm"
                       ? THEME.primary
-                      : THEME.nodeBorder
+                      : THEME.inputBorder
                   }`,
                   background:
                     searchMode === "llm"
-                      ? "rgba(74,222,128,0.15)"
-                      : "transparent",
+                      ? "rgba(143,188,143,0.2)"
+                      : "rgba(255,255,255,0.6)",
                   color:
                     searchMode === "llm" ? THEME.primary : THEME.textDim,
                   cursor: "pointer",
@@ -373,12 +388,13 @@ export default function App() {
               style={{
                 padding: "6px 12px",
                 borderRadius: 8,
-                background: "transparent",
-                border: `1px solid ${THEME.nodeBorder}`,
-                color: THEME.textDim,
+                background: THEME.inputBg,
+                border: `1px solid ${THEME.inputBorder}`,
+                color: THEME.textMain,
                 cursor: "pointer",
                 fontSize: 11.5,
                 marginLeft: 8,
+                boxShadow: "0 6px 14px rgba(41, 50, 30, 0.12)",
               }}
             >
               🍎 导出
@@ -388,11 +404,12 @@ export default function App() {
               style={{
                 padding: "6px 12px",
                 borderRadius: 8,
-                background: "transparent",
-                border: `1px solid ${THEME.nodeBorder}`,
-                color: THEME.textDim,
+                background: THEME.inputBg,
+                border: `1px solid ${THEME.inputBorder}`,
+                color: THEME.textMain,
                 cursor: "pointer",
                 fontSize: 11.5,
+                boxShadow: "0 6px 14px rgba(41, 50, 30, 0.12)",
               }}
             >
               🔄 重置

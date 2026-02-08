@@ -1,8 +1,11 @@
-// Tavily search API calls via local proxy
+// Tavily search API calls via proxy
+
+const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
+const apiUrl = (path) => (API_BASE ? `${API_BASE}${path}` : path);
 
 export async function searchWithTavily(query, maxResults = 5) {
   try {
-    const response = await fetch("/api/tavily", {
+    const response = await fetch(apiUrl("/api/tavily"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

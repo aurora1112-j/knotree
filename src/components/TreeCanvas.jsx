@@ -4,59 +4,78 @@ import { THEME } from "../theme";
 // ─── Branch Line ───
 function BranchLine({ x1, y1, x2, y2, depth, isPruned }) {
   const color = isPruned
-    ? "#3a2a2a"
+    ? THEME.prunedText
     : depth === 0
     ? THEME.trunk
     : depth === 1
     ? THEME.branch
     : THEME.branchThin;
-  const sw = Math.max(1.5, 5 - depth * 0.8);
-  const midY = (y1 + y2) / 2;
+  const sw = Math.max(1, 8 - depth * 1.2);
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const curve = Math.min(90, Math.abs(dx) * 0.45 + 20);
+  const c1x = x1 + Math.sign(dx || 1) * curve;
+  const c1y = y1 + dy * 0.35;
+  const c2x = x2 - Math.sign(dx || 1) * curve;
+  const c2y = y2 - dy * 0.35;
   return (
     <path
-      d={`M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`}
+      d={`M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`}
       stroke={color}
       strokeWidth={sw}
       fill="none"
       strokeLinecap="round"
-      opacity={isPruned ? 0.3 : 0.85}
+      opacity={isPruned ? 0.25 : 0.9}
       style={{
         filter: isPruned
           ? "none"
-          : "drop-shadow(0 0 2px rgba(74,222,128,0.15))",
+          : "drop-shadow(0 1px 2px rgba(74,93,35,0.15))",
       }}
     />
   );
 }
 
+const splitLines = (text, maxChars, maxLines) => {
+  if (!text) return [];
+  const words = text.replace(/\s+/g, " ").trim().split(" ");
+  const lines = [];
+  let line = "";
+  words.forEach((word) => {
+    const next = line ? `${line} ${word}` : word;
+    if (next.length > maxChars && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  });
+  if (line) lines.push(line);
+  return lines.slice(0, maxLines);
+};
+
 // ─── Tree Node ───
-function TreeNodeSVG({ node, x, y, isSelected, onSelect, isLoading }) {
+function TreeNodeSVG({
+  node,
+  x,
+  y,
+  isSelected,
+  onSelect,
+  isLoading,
+  isHovered,
+  onHover,
+}) {
   const isPruned = node.status === "pruned";
   const isRoot = node.nodeType === "root";
   const isLeaf = node.nodeType === "leaf";
+  const hasLink = Boolean(node.sources?.[0]?.url);
 
-  const nodeW = isRoot ? 140 : isLeaf ? 120 : 120;
-  const nodeH = isRoot ? 44 : isLeaf ? 36 : 38;
-
-  const bgColor = isPruned
-    ? "rgba(74,44,44,0.6)"
-    : isSelected
-    ? "rgba(36,61,47,0.95)"
-    : "rgba(26,46,35,0.9)";
-  const borderColor = isPruned
-    ? "#5a3a3a"
-    : isSelected
-    ? THEME.selectedBorder
-    : THEME.nodeBorder;
+  const nodeW = isRoot ? 150 : isLeaf ? 140 : 140;
+  const nodeH = isRoot ? 52 : isLeaf ? 44 : 34;
   const textColor = isPruned ? THEME.prunedText : THEME.textMain;
-
-  const icon = isRoot
-    ? "🌳"
-    : isLeaf
-    ? "🍃"
-    : node.status === "growing"
-    ? "🌿"
-    : "🌱";
+  const scale = isHovered && isLeaf ? 1.06 : 1;
+  const icon = isRoot ? "🌰" : isLeaf ? "🍃" : "";
+  const label =
+    node.label.length > 12 ? `${node.label.slice(0, 11)}…` : node.label;
 
   return (
     <g
@@ -64,49 +83,118 @@ function TreeNodeSVG({ node, x, y, isSelected, onSelect, isLoading }) {
         e.stopPropagation();
         onSelect(node.id);
       }}
+      onMouseEnter={() => onHover(node.id)}
+      onMouseLeave={() => onHover(null)}
       style={{ cursor: "pointer" }}
+      transform={`translate(${x} ${y}) scale(${scale}) translate(${-x} ${-y})`}
     >
       {isSelected && !isPruned && (
-        <rect
-          x={x - nodeW / 2 - 3}
-          y={y - nodeH / 2 - 3}
-          width={nodeW + 6}
-          height={nodeH + 6}
-          rx={14}
-          fill="none"
-          stroke={THEME.selectedBorder}
-          strokeWidth={2}
-          opacity={0.5}
-        >
-          <animate
-            attributeName="opacity"
-            values="0.3;0.7;0.3"
-            dur="2s"
-            repeatCount="indefinite"
-          />
-        </rect>
+        <>
+          {isRoot ? (
+            <circle
+              cx={x}
+              cy={y}
+              r={30}
+              fill="none"
+              stroke={THEME.selectedBorder}
+              strokeWidth={2}
+              opacity={0.55}
+            />
+          ) : (
+            <rect
+              x={x - nodeW / 2 - 6}
+              y={y - nodeH / 2 - 6}
+              width={nodeW + 12}
+              height={nodeH + 12}
+              rx={16}
+              fill="none"
+              stroke={THEME.selectedBorder}
+              strokeWidth={1.6}
+              opacity={0.5}
+            />
+          )}
+        </>
       )}
-      <rect
-        x={x - nodeW / 2}
-        y={y - nodeH / 2}
-        width={nodeW}
-        height={nodeH}
-        rx={11}
-        fill={bgColor}
-        stroke={borderColor}
-        strokeWidth={1.5}
-      />
+      {isRoot && (
+        <>
+          <circle
+            cx={x}
+            cy={y}
+            r={26}
+            fill={THEME.nodeBg}
+            stroke={THEME.trunk}
+            strokeWidth={2.5}
+          />
+          <circle
+            cx={x}
+            cy={y}
+            r={14}
+            fill="none"
+            stroke={THEME.branchThin}
+            strokeWidth={1}
+          />
+        </>
+      )}
+
+      {!isRoot && !isLeaf && (
+        <>
+          <rect
+            x={x - nodeW / 2}
+            y={y - nodeH / 2}
+            width={nodeW}
+            height={nodeH}
+            rx={10}
+            fill={THEME.nodeBg}
+            opacity={isPruned ? 0.55 : 0.92}
+            stroke="none"
+          />
+          <line
+            x1={x - nodeW / 2 + 12}
+            y1={y + nodeH / 2 - 6}
+            x2={x + nodeW / 2 - 12}
+            y2={y + nodeH / 2 - 6}
+            stroke={THEME.branchThin}
+            strokeWidth={1}
+          />
+        </>
+      )}
+
+      {isLeaf && (
+        <>
+          <path
+            d={`M ${x} ${y - nodeH / 2}
+              C ${x + nodeW / 2} ${y - nodeH / 2 + 4} ${x + nodeW / 2} ${
+              y + nodeH / 2 - 4
+            } ${x} ${y + nodeH / 2}
+              C ${x - nodeW / 2} ${y + nodeH / 2 - 4} ${
+              x - nodeW / 2
+            } ${y - nodeH / 2 + 4} ${x} ${y - nodeH / 2} Z`}
+            fill={THEME.nodeHover}
+            stroke={THEME.leafGreen}
+            strokeWidth={1.2}
+            opacity={isPruned ? 0.5 : 0.95}
+          />
+          <path
+            d={`M ${x} ${y - nodeH / 2 + 6} L ${x} ${y + nodeH / 2 - 6}`}
+            stroke="rgba(74,93,35,0.35)"
+            strokeWidth={1}
+          />
+          <path
+            d={`M ${x - 12} ${y - 4} L ${x} ${y} L ${x + 12} ${y - 4}`}
+            stroke="rgba(74,93,35,0.2)"
+            strokeWidth={0.8}
+          />
+        </>
+      )}
       {isLoading && (
-        <rect
-          x={x - nodeW / 2}
-          y={y - nodeH / 2}
-          width={nodeW}
-          height={nodeH}
-          rx={11}
+        <circle
+          cx={x}
+          cy={y}
+          r={isRoot ? 30 : 22}
           fill="none"
-          stroke={THEME.primary}
+          stroke={THEME.accent}
           strokeWidth={2}
-          strokeDasharray="8 4"
+          strokeDasharray="6 4"
           opacity={0.7}
         >
           <animateTransform
@@ -117,22 +205,22 @@ function TreeNodeSVG({ node, x, y, isSelected, onSelect, isLoading }) {
             dur="3s"
             repeatCount="indefinite"
           />
-        </rect>
+        </circle>
       )}
       <text
         x={x}
-        y={y + 1}
+        y={isRoot ? y + 1 : y + 1}
         textAnchor="middle"
         dominantBaseline="central"
         fill={textColor}
         fontSize={isRoot ? 13 : 11.5}
-        fontFamily="'Noto Sans SC', 'Segoe UI', sans-serif"
-        fontWeight={isRoot ? 600 : 400}
+        fontFamily="'Noto Serif SC', 'Playfair Display', serif"
+        fontWeight={isRoot ? 600 : 500}
       >
-        {icon}{" "}
-        {node.label.length > 10 ? node.label.slice(0, 9) + "…" : node.label}
+        {icon ? `${icon} ` : ""}
+        {label}
       </text>
-      {isLeaf && node.sources?.[0]?.url && (
+      {isLeaf && hasLink && (
         <text
           x={x + nodeW / 2 - 10}
           y={y - nodeH / 2 + 10}
@@ -142,6 +230,32 @@ function TreeNodeSVG({ node, x, y, isSelected, onSelect, isLoading }) {
         >
           🔗
         </text>
+      )}
+      {isLeaf && isHovered && node.summary && (
+        <g>
+          <rect
+            x={x - 90}
+            y={y - nodeH / 2 - 52}
+            width={180}
+            height={44}
+            rx={10}
+            fill={THEME.bg}
+            stroke={THEME.nodeBorder}
+            strokeWidth={1}
+            opacity={0.96}
+          />
+          {splitLines(node.summary, 20, 2).map((line, index) => (
+            <text
+              key={index}
+              x={x - 80}
+              y={y - nodeH / 2 - 36 + index * 14}
+              fontSize={10.5}
+              fill={THEME.textDim}
+            >
+              {line}
+            </text>
+          ))}
+        </g>
       )}
     </g>
   );
@@ -161,6 +275,7 @@ export default function TreeCanvas({
   const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 900, h: 600 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [hoveredId, setHoveredId] = useState(null);
 
   // Auto-expand viewBox
   React.useEffect(() => {
@@ -169,8 +284,8 @@ export default function TreeCanvas({
       (n) => n.status !== "pruned"
     );
     const maxDepth = Math.max(0, ...visible.map((n) => n.depth));
-    const neededH = maxDepth * 105 + 160;
-    const neededW = Math.max(900, visible.length * 75);
+    const neededH = maxDepth * 150 + 150;
+    const neededW = Math.max(1100, visible.length * 110);
     setViewBox((v) => ({
       ...v,
       w: Math.max(v.w, neededW),
@@ -261,8 +376,20 @@ export default function TreeCanvas({
           fill={THEME.canvasBg}
         />
 
-        {/* Grid dots */}
+        {/* Paper texture */}
         <defs>
+          <filter id="paperNoise" x="0" y="0" width="100%" height="100%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.8"
+              numOctaves="2"
+              stitchTiles="stitch"
+            />
+            <feColorMatrix type="saturate" values="0" />
+            <feComponentTransfer>
+              <feFuncA type="table" tableValues="0 0.04" />
+            </feComponentTransfer>
+          </filter>
           <pattern
             id="dots"
             x="0"
@@ -271,9 +398,17 @@ export default function TreeCanvas({
             height="40"
             patternUnits="userSpaceOnUse"
           >
-            <circle cx="20" cy="20" r="0.8" fill="rgba(74,222,128,0.08)" />
+            <circle cx="20" cy="20" r="0.6" fill="rgba(44,62,80,0.08)" />
           </pattern>
         </defs>
+        <rect
+          x={viewBox.x - 2000}
+          y={viewBox.y - 2000}
+          width={viewBox.w + 4000}
+          height={viewBox.h + 4000}
+          filter="url(#paperNoise)"
+          opacity={0.35}
+        />
         <rect
           x={viewBox.x - 2000}
           y={viewBox.y - 2000}
@@ -300,6 +435,8 @@ export default function TreeCanvas({
               isSelected={selectedNodeId === node.id}
               onSelect={onSelectNode}
               isLoading={loadingNodeId === node.id}
+              isHovered={hoveredId === node.id}
+              onHover={setHoveredId}
             />
           );
         })}

@@ -1,8 +1,11 @@
-// LLM API calls via local proxy → ModelScope (OpenAI-compatible)
+// LLM API calls via proxy → ModelScope (OpenAI-compatible)
+
+const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
+const apiUrl = (path) => (API_BASE ? `${API_BASE}${path}` : path);
 
 async function callLLM(prompt) {
   try {
-    const response = await fetch("/api/llm", {
+    const response = await fetch(apiUrl("/api/llm"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

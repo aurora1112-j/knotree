@@ -27,13 +27,13 @@ export function NodeDetail({
         position: "absolute",
         bottom: 16,
         right: 16,
-        background: "rgba(13,20,16,0.95)",
-        border: `1px solid ${THEME.nodeBorder}`,
-        borderRadius: 14,
+        background: THEME.glass,
+        border: `1px solid ${THEME.glassBorder}`,
+        borderRadius: 16,
         padding: "16px 18px",
         width: 270,
         backdropFilter: "blur(12px)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+        boxShadow: "0 12px 30px rgba(44,62,80,0.12)",
       }}
     >
       <div
@@ -105,7 +105,7 @@ export function NodeDetail({
               style={{
                 display: "block",
                 fontSize: 10.5,
-                color: THEME.leafGreen,
+                color: THEME.primary,
                 textDecoration: "none",
                 padding: "2px 0",
                 overflow: "hidden",
@@ -145,6 +145,7 @@ export function NodeDetail({
                 cursor: "pointer",
                 fontSize: 12,
                 fontWeight: 500,
+                boxShadow: "0 6px 14px rgba(74,93,35,0.18)",
               }}
             >
               🌿 成长
@@ -157,9 +158,9 @@ export function NodeDetail({
                 flex: 1,
                 padding: "7px 0",
                 borderRadius: 8,
-                background: "#0e4a2e",
-                color: THEME.leafGreen,
-                border: `1px solid ${THEME.nodeBorder}`,
+                background: "rgba(143,188,143,0.2)",
+                color: THEME.primary,
+                border: `1px solid ${THEME.accent}`,
                 cursor: "pointer",
                 fontSize: 12,
               }}
@@ -173,9 +174,9 @@ export function NodeDetail({
               style={{
                 padding: "7px 10px",
                 borderRadius: 8,
-                background: "transparent",
-                color: THEME.prunedText,
-                border: "1px solid #5a3a3a",
+                background: THEME.btnPrune,
+                color: "#fff",
+                border: `1px solid ${THEME.btnPruneHover}`,
                 cursor: "pointer",
                 fontSize: 12,
               }}
@@ -190,9 +191,9 @@ export function NodeDetail({
                 flex: 1,
                 padding: "7px 0",
                 borderRadius: 8,
-                background: "transparent",
-                color: "#d97706",
-                border: "1px solid #d97706",
+                background: "rgba(224,122,95,0.15)",
+                color: THEME.accentWarm,
+                border: `1px solid ${THEME.accentWarm}`,
                 cursor: "pointer",
                 fontSize: 12,
               }}
@@ -223,12 +224,13 @@ export function PrunedPanel({ treeNodes, onRestore }) {
         position: "absolute",
         bottom: 16,
         left: 16,
-        background: "rgba(30,20,20,0.9)",
-        border: "1px solid #5a3a3a",
+        background: THEME.glass,
+        border: `1px solid ${THEME.glassBorder}`,
         borderRadius: 12,
         padding: "10px 14px",
         maxWidth: 220,
         backdropFilter: "blur(8px)",
+        boxShadow: "0 10px 26px rgba(44,62,80,0.1)",
       }}
     >
       <div
@@ -261,9 +263,9 @@ export function PrunedPanel({ treeNodes, onRestore }) {
           <button
             onClick={() => onRestore(n.id)}
             style={{
-              background: "transparent",
-              border: "1px solid #d97706",
-              color: "#d97706",
+              background: "rgba(224,122,95,0.15)",
+              border: `1px solid ${THEME.accentWarm}`,
+              color: THEME.accentWarm,
               borderRadius: 6,
               padding: "1px 7px",
               fontSize: 10,
@@ -302,14 +304,15 @@ export function LogPanel({ actionLog }) {
         position: "absolute",
         top: 12,
         right: 16,
-        background: "rgba(13,20,16,0.92)",
-        border: `1px solid ${THEME.nodeBorder}`,
+        background: THEME.glass,
+        border: `1px solid ${THEME.glassBorder}`,
         borderRadius: 12,
         padding: "10px 14px",
         maxWidth: 200,
         maxHeight: 240,
         overflowY: "auto",
         backdropFilter: "blur(8px)",
+        boxShadow: "0 10px 26px rgba(44,62,80,0.1)",
       }}
     >
       <div
@@ -339,7 +342,7 @@ export function ExportModal({ markdown, onClose }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.7)",
+        background: "rgba(44,62,80,0.25)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -352,14 +355,15 @@ export function ExportModal({ markdown, onClose }) {
         onClick={(e) => e.stopPropagation()}
         style={{
           background: THEME.bg,
-          border: `1px solid ${THEME.nodeBorder}`,
-          borderRadius: 16,
+          border: `1px solid ${THEME.inputBorder}`,
+          borderRadius: 18,
           padding: 24,
           width: "90%",
           maxWidth: 560,
           maxHeight: "80vh",
           display: "flex",
           flexDirection: "column",
+          boxShadow: "0 16px 36px rgba(44,62,80,0.18)",
         }}
       >
         <div
@@ -378,7 +382,7 @@ export function ExportModal({ markdown, onClose }) {
             overflow: "auto",
             padding: 16,
             borderRadius: 10,
-            background: THEME.inputBg,
+            background: "rgba(255,255,255,0.7)",
             border: `1px solid ${THEME.inputBorder}`,
             color: THEME.textDim,
             fontSize: 12,
@@ -408,6 +412,7 @@ export function ExportModal({ markdown, onClose }) {
               border: "none",
               cursor: "pointer",
               fontSize: 12,
+              boxShadow: "0 6px 14px rgba(74,93,35,0.18)",
             }}
           >
             📋 复制
@@ -417,9 +422,9 @@ export function ExportModal({ markdown, onClose }) {
             style={{
               padding: "8px 16px",
               borderRadius: 8,
-              background: "transparent",
-              color: THEME.textDim,
-              border: `1px solid ${THEME.nodeBorder}`,
+              background: THEME.inputBg,
+              color: THEME.textMain,
+              border: `1px solid ${THEME.inputBorder}`,
               cursor: "pointer",
               fontSize: 12,
             }}
