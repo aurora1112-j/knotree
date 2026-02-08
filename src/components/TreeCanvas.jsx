@@ -1,59 +1,52 @@
 import React, { useRef, useState, useCallback } from "react";
 import { THEME } from "../theme";
+import "../treeCanvas.css";
 
-// ─── Branch Line ───
-function BranchLine({ x1, y1, x2, y2, depth, isPruned }) {
-  const color = isPruned
-    ? THEME.prunedText
-    : depth === 0
-    ? THEME.trunk
-    : depth === 1
-    ? THEME.branch
-    : THEME.branchThin;
-  const sw = Math.max(1, 8 - depth * 1.2);
+const EDGE_COLORS = {
+  root: { start: "#4A5D23", end: "#6F7F3A" },
+  branch: { start: "#556B2F", end: "#8FBC8F" },
+  leaf: { start: "#8FBC8F", end: "#CDE7C0" },
+};
+
+const getEdgeStyle = (depth) => {
+  if (depth <= 0) {
+    return { width: 8, colors: EDGE_COLORS.root };
+  }
+  if (depth === 1) {
+    return { width: 5, colors: EDGE_COLORS.branch };
+  }
+  return { width: 1.5, colors: EDGE_COLORS.leaf };
+};
+
+const buildBezierPath = (x1, y1, x2, y2) => {
   const dx = x2 - x1;
   const dy = y2 - y1;
-  const curve = Math.min(90, Math.abs(dx) * 0.45 + 20);
-  const c1x = x1 + Math.sign(dx || 1) * curve;
-  const c1y = y1 + dy * 0.35;
-  const c2x = x2 - Math.sign(dx || 1) * curve;
-  const c2y = y2 - dy * 0.35;
+  const curve = 0.35;
+  const c1x = x1 + dx * 0.25;
+  const c1y = y1 + dy * curve;
+  const c2x = x2 - dx * 0.25;
+  const c2y = y2 - dy * curve;
+  return `M ${x1} ${y1} C ${c1x} ${c1y} ${c2x} ${c2y} ${x2} ${y2}`;
+};
+
+function BranchLine({ path, strokeWidth, stroke, isPruned }) {
   return (
     <path
-      d={`M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`}
-      stroke={color}
-      strokeWidth={sw}
+      d={path}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
       fill="none"
       strokeLinecap="round"
       opacity={isPruned ? 0.25 : 0.9}
       style={{
         filter: isPruned
           ? "none"
-          : "drop-shadow(0 1px 2px rgba(74,93,35,0.15))",
+          : "drop-shadow(0 1px 2px rgba(74,93,35,0.18))",
       }}
     />
   );
 }
 
-const splitLines = (text, maxChars, maxLines) => {
-  if (!text) return [];
-  const words = text.replace(/\s+/g, " ").trim().split(" ");
-  const lines = [];
-  let line = "";
-  words.forEach((word) => {
-    const next = line ? `${line} ${word}` : word;
-    if (next.length > maxChars && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = next;
-    }
-  });
-  if (line) lines.push(line);
-  return lines.slice(0, maxLines);
-};
-
-// ─── Tree Node ───
 function TreeNodeSVG({
   node,
   x,
@@ -67,15 +60,15 @@ function TreeNodeSVG({
   const isPruned = node.status === "pruned";
   const isRoot = node.nodeType === "root";
   const isLeaf = node.nodeType === "leaf";
-  const hasLink = Boolean(node.sources?.[0]?.url);
 
-  const nodeW = isRoot ? 150 : isLeaf ? 140 : 140;
-  const nodeH = isRoot ? 52 : isLeaf ? 44 : 34;
-  const textColor = isPruned ? THEME.prunedText : THEME.textMain;
-  const scale = isHovered && isLeaf ? 1.06 : 1;
-  const icon = isRoot ? "🌰" : isLeaf ? "🍃" : "";
-  const label =
-    node.label.length > 12 ? `${node.label.slice(0, 11)}…` : node.label;
+  const cardW = 220;
+  const cardH = node.summary ? 110 : 86;
+
+  const label = node.label || "";
+  const summary = node.summary || "";
+
+  const cardX = x - cardW / 2;
+  const cardY = isRoot ? y - cardH - 28 : y - cardH / 2;
 
   return (
     <g
@@ -86,37 +79,9 @@ function TreeNodeSVG({
       onMouseEnter={() => onHover(node.id)}
       onMouseLeave={() => onHover(null)}
       style={{ cursor: "pointer" }}
-      transform={`translate(${x} ${y}) scale(${scale}) translate(${-x} ${-y})`}
     >
-      {isSelected && !isPruned && (
-        <>
-          {isRoot ? (
-            <circle
-              cx={x}
-              cy={y}
-              r={30}
-              fill="none"
-              stroke={THEME.selectedBorder}
-              strokeWidth={2}
-              opacity={0.55}
-            />
-          ) : (
-            <rect
-              x={x - nodeW / 2 - 6}
-              y={y - nodeH / 2 - 6}
-              width={nodeW + 12}
-              height={nodeH + 12}
-              rx={16}
-              fill="none"
-              stroke={THEME.selectedBorder}
-              strokeWidth={1.6}
-              opacity={0.5}
-            />
-          )}
-        </>
-      )}
       {isRoot && (
-        <>
+        <g>
           <circle
             cx={x}
             cy={y}
@@ -133,59 +98,72 @@ function TreeNodeSVG({
             stroke={THEME.branchThin}
             strokeWidth={1}
           />
-        </>
+        </g>
       )}
 
-      {!isRoot && !isLeaf && (
-        <>
-          <rect
-            x={x - nodeW / 2}
-            y={y - nodeH / 2}
-            width={nodeW}
-            height={nodeH}
-            rx={10}
-            fill={THEME.nodeBg}
-            opacity={isPruned ? 0.55 : 0.92}
-            stroke="none"
-          />
-          <line
-            x1={x - nodeW / 2 + 12}
-            y1={y + nodeH / 2 - 6}
-            x2={x + nodeW / 2 - 12}
-            y2={y + nodeH / 2 - 6}
-            stroke={THEME.branchThin}
-            strokeWidth={1}
-          />
-        </>
+      {!isLeaf && (
+        <foreignObject x={cardX} y={cardY} width={cardW} height={cardH}>
+          <div
+            xmlns="http://www.w3.org/1999/xhtml"
+            className={`node-card ${isSelected ? "is-selected" : ""} ${
+              isPruned ? "is-pruned" : ""
+            }`}
+            style={{ pointerEvents: "all" }}
+          >
+            <div className="node-title">{label}</div>
+            {summary && <div className="node-summary">{summary}</div>}
+            <div className="node-tooltip">
+              <div className="node-tooltip-title">{label}</div>
+              {summary && (
+                <div className="node-tooltip-summary">{summary}</div>
+              )}
+            </div>
+          </div>
+        </foreignObject>
       )}
 
       {isLeaf && (
-        <>
+        <g>
           <path
-            d={`M ${x} ${y - nodeH / 2}
-              C ${x + nodeW / 2} ${y - nodeH / 2 + 4} ${x + nodeW / 2} ${
-              y + nodeH / 2 - 4
-            } ${x} ${y + nodeH / 2}
-              C ${x - nodeW / 2} ${y + nodeH / 2 - 4} ${
-              x - nodeW / 2
-            } ${y - nodeH / 2 + 4} ${x} ${y - nodeH / 2} Z`}
-            fill={THEME.nodeHover}
-            stroke={THEME.leafGreen}
-            strokeWidth={1.2}
-            opacity={isPruned ? 0.5 : 0.95}
-          />
-          <path
-            d={`M ${x} ${y - nodeH / 2 + 6} L ${x} ${y + nodeH / 2 - 6}`}
-            stroke="rgba(74,93,35,0.35)"
+            d={`M ${x} ${y - 12}
+              C ${x + 18} ${y - 8} ${x + 18} ${y + 8} ${x} ${y + 14}
+              C ${x - 18} ${y + 8} ${x - 18} ${y - 8} ${x} ${y - 12} Z`}
+            fill={THEME.leafGreen}
+            opacity={isPruned ? 0.4 : 0.95}
+            stroke={THEME.branchThin}
             strokeWidth={1}
           />
           <path
-            d={`M ${x - 12} ${y - 4} L ${x} ${y} L ${x + 12} ${y - 4}`}
-            stroke="rgba(74,93,35,0.2)"
-            strokeWidth={0.8}
+            d={`M ${x} ${y - 9} L ${x} ${y + 10}`}
+            stroke="rgba(74,93,35,0.35)"
+            strokeWidth={1}
           />
-        </>
+          {isSelected && (
+            <circle
+              cx={x}
+              cy={y}
+              r={16}
+              fill="none"
+              stroke={THEME.selectedBorder}
+              strokeWidth={1.5}
+              opacity={0.6}
+            />
+          )}
+          {isHovered && (
+            <foreignObject x={x - 110} y={y - 120} width={220} height={100}>
+              <div
+                xmlns="http://www.w3.org/1999/xhtml"
+                className="leaf-tooltip"
+                style={{ pointerEvents: "none" }}
+              >
+                <div className="node-title">{label}</div>
+                {summary && <div className="node-summary">{summary}</div>}
+              </div>
+            </foreignObject>
+          )}
+        </g>
       )}
+
       {isLoading && (
         <circle
           cx={x}
@@ -207,61 +185,10 @@ function TreeNodeSVG({
           />
         </circle>
       )}
-      <text
-        x={x}
-        y={isRoot ? y + 1 : y + 1}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill={textColor}
-        fontSize={isRoot ? 13 : 11.5}
-        fontFamily="'Noto Serif SC', 'Playfair Display', serif"
-        fontWeight={isRoot ? 600 : 500}
-      >
-        {icon ? `${icon} ` : ""}
-        {label}
-      </text>
-      {isLeaf && hasLink && (
-        <text
-          x={x + nodeW / 2 - 10}
-          y={y - nodeH / 2 + 10}
-          textAnchor="middle"
-          fontSize={10}
-          fill={THEME.flower}
-        >
-          🔗
-        </text>
-      )}
-      {isLeaf && isHovered && node.summary && (
-        <g>
-          <rect
-            x={x - 90}
-            y={y - nodeH / 2 - 52}
-            width={180}
-            height={44}
-            rx={10}
-            fill={THEME.bg}
-            stroke={THEME.nodeBorder}
-            strokeWidth={1}
-            opacity={0.96}
-          />
-          {splitLines(node.summary, 20, 2).map((line, index) => (
-            <text
-              key={index}
-              x={x - 80}
-              y={y - nodeH / 2 - 36 + index * 14}
-              fontSize={10.5}
-              fill={THEME.textDim}
-            >
-              {line}
-            </text>
-          ))}
-        </g>
-      )}
     </g>
   );
 }
 
-// ─── Tree Canvas ───
 export default function TreeCanvas({
   treeNodes,
   rootId,
@@ -277,15 +204,14 @@ export default function TreeCanvas({
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [hoveredId, setHoveredId] = useState(null);
 
-  // Auto-expand viewBox
   React.useEffect(() => {
     if (!rootId) return;
     const visible = Object.values(treeNodes).filter(
       (n) => n.status !== "pruned"
     );
     const maxDepth = Math.max(0, ...visible.map((n) => n.depth));
-    const neededH = maxDepth * 150 + 150;
-    const neededW = Math.max(1100, visible.length * 110);
+    const neededH = maxDepth * 180 + 160;
+    const neededW = Math.max(1100, visible.length * 120);
     setViewBox((v) => ({
       ...v,
       w: Math.max(v.w, neededW),
@@ -303,10 +229,8 @@ export default function TreeCanvas({
       if (!isPanning) return;
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const dx =
-        (e.clientX - panStart.x) * (viewBox.w / rect.width);
-      const dy =
-        (e.clientY - panStart.y) * (viewBox.h / rect.height);
+      const dx = (e.clientX - panStart.x) * (viewBox.w / rect.width);
+      const dy = (e.clientY - panStart.y) * (viewBox.h / rect.height);
       setViewBox((v) => ({ ...v, x: v.x - dx, y: v.y - dy }));
       setPanStart({ x: e.clientX, y: e.clientY });
     },
@@ -330,30 +254,42 @@ export default function TreeCanvas({
     });
   }, []);
 
-  // Build edges
   const edges = [];
+  const edgeGradients = [];
   Object.values(treeNodes).forEach((node) => {
     node.children.forEach((cid) => {
       const child = treeNodes[cid];
       if (child && positions[node.id] && positions[cid]) {
+        const key = `${node.id}-${cid}`;
+        const { width, colors } = getEdgeStyle(node.depth);
+        const gradId = `edge-grad-${key}`;
         edges.push({
-          key: `${node.id}-${cid}`,
+          key,
+          path: buildBezierPath(
+            positions[node.id].x,
+            positions[node.id].y,
+            positions[cid].x,
+            positions[cid].y
+          ),
+          stroke: `url(#${gradId})`,
+          strokeWidth: width,
+          isPruned: child.status === "pruned",
+        });
+        edgeGradients.push({
+          id: gradId,
           x1: positions[node.id].x,
           y1: positions[node.id].y,
           x2: positions[cid].x,
           y2: positions[cid].y,
-          depth: node.depth,
-          isPruned: child.status === "pruned",
+          start: colors.start,
+          end: colors.end,
         });
       }
     });
   });
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: "100%", height: "100%", overflow: "hidden" }}
-    >
+    <div ref={containerRef} style={{ width: "100%", height: "100%", overflow: "hidden" }}>
       <svg
         ref={svgRef}
         width="100%"
@@ -366,7 +302,6 @@ export default function TreeCanvas({
         onWheel={handleWheel}
         style={{ cursor: isPanning ? "grabbing" : "grab" }}
       >
-        {/* Background */}
         <rect
           data-bg="true"
           x={viewBox.x - 2000}
@@ -376,7 +311,6 @@ export default function TreeCanvas({
           fill={THEME.canvasBg}
         />
 
-        {/* Paper texture */}
         <defs>
           <filter id="paperNoise" x="0" y="0" width="100%" height="100%">
             <feTurbulence
@@ -400,7 +334,22 @@ export default function TreeCanvas({
           >
             <circle cx="20" cy="20" r="0.6" fill="rgba(44,62,80,0.08)" />
           </pattern>
+          {edgeGradients.map((grad) => (
+            <linearGradient
+              key={grad.id}
+              id={grad.id}
+              gradientUnits="userSpaceOnUse"
+              x1={grad.x1}
+              y1={grad.y1}
+              x2={grad.x2}
+              y2={grad.y2}
+            >
+              <stop offset="0%" stopColor={grad.start} stopOpacity="0.95" />
+              <stop offset="100%" stopColor={grad.end} stopOpacity="0.7" />
+            </linearGradient>
+          ))}
         </defs>
+
         <rect
           x={viewBox.x - 2000}
           y={viewBox.y - 2000}
@@ -417,12 +366,16 @@ export default function TreeCanvas({
           fill="url(#dots)"
         />
 
-        {/* Edges */}
-        {edges.map((e) => (
-          <BranchLine key={e.key} {...e} />
+        {edges.map((edge) => (
+          <BranchLine
+            key={edge.key}
+            path={edge.path}
+            stroke={edge.stroke}
+            strokeWidth={edge.strokeWidth}
+            isPruned={edge.isPruned}
+          />
         ))}
 
-        {/* Nodes */}
         {Object.values(treeNodes).map((node) => {
           const pos = positions[node.id];
           if (!pos) return null;

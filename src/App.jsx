@@ -108,11 +108,11 @@ export default function App() {
     );
     const count = visible.length;
     const maxDepth = visible.reduce((m, n) => Math.max(m, n.depth || 0), 0);
-    const levelH = 150;
+    const levelH = 180;
     const rootPad = 70;
     const topPad = 80;
     return {
-      viewW: Math.max(1100, count * 110),
+      viewW: Math.max(1100, count * 120),
       viewH: Math.max(720, maxDepth * levelH + rootPad + topPad),
     };
   }, [state.treeNodes]);

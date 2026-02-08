@@ -183,10 +183,10 @@ export function treeReducer(state, action) {
 export function computeLayout(treeNodes, rootId, width, height) {
   if (!rootId || !treeNodes[rootId]) return {};
   const positions = {};
-  const LEVEL_H = 150;
+  const LEVEL_H = 180;
   const ROOT_PAD = 70;
   const SIDE_PAD = 90;
-  const MIN_GAP = 140;
+  const MIN_GAP = 120;
   const rootY = Math.max(ROOT_PAD + LEVEL_H, height - ROOT_PAD);
 
   function countVisible(id) {
